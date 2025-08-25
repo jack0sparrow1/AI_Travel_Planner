@@ -2,6 +2,7 @@ from google import genai
 from config.settings import GEMINI_API_KEY, DEFAULT_MODEL
 from planner.prompts import BASE_ITINERARY_PROMPT
 
+
 def generate_itinerary(destination, days, budget, interests, flights=None, hotels=None):
     client = genai.Client(api_key=GEMINI_API_KEY)
 
