@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 # Load environment variables from .env file automatically
 load_dotenv()
 
+if os.path.exists(".env"):
+    load_dotenv()
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gemini-2.5-flash")
 
