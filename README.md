@@ -54,8 +54,8 @@ This tool supports both CLI and web interfaces via Streamlit.
 
 1. Clone the repository:
 
-git clone <your-repo-url>
-cd <project-folder> 
+git clone [<your-repo-url>](https://github.com/jack0sparrow1/AI_Travel_Planner.git)
+cd AI_Travel_Planner 
 
 
 2. Create and activate a Python virtual environment:
