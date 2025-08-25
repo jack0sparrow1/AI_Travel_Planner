@@ -107,16 +107,26 @@ Open the provided URL in a browser and interact with the UI.
 
 /config
 settings.py # Loads API keys from environment variables
+
 /iata_codes.json # Local city to IATA code mapping
+
 /planner/
 itinerary.py # AI itinerary generation logic with Gemini API
+
 flight_api.py # Amadeus flight API integration
+
 hotel_api.py # Amadeus hotel API integration
+
 location_api.py # Local IATA code lookup by city name
+
 /app.py # Streamlit web interface
+
 /main.py # CLI interface
+
 /requirements.txt # Python package requirements
+
 README.md # This file
+
 .env # Stores API keys securely (not committed)
 
 
