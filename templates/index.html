@@ -3,12 +3,18 @@
 <head>
     <title>AI Travel Planner</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 30px; max-width: 900px; }
-        label { display: block; margin-top: 10px; }
-        input, select { width: 100%; padding: 8px; margin-top: 4px; }
-        .error { color: red; }
-        pre { background:#f4f4f4; padding:15px; white-space: pre-wrap; }
-        ul { list-style-type: none; padding-left: 0; }
+        body { font-family: Arial, sans-serif; margin: 30px; max-width: 900px; line-height: 1.6; color: #333; }
+        label { display: block; margin-top: 15px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { margin-top: 25px; padding: 10px 20px; background-color: #0078D7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+        button:hover { background-color: #005fa3; }
+        .error { color: #b00020; font-weight: bold; margin-bottom: 15px; }
+        pre { background: #f4f4f4; padding: 15px; white-space: pre-wrap; border-radius: 5px; }
+        h1, h2 { color: #0078D7; margin-top: 40px; }
+        ul { list-style-type: disc; padding-left: 20px; }
+        ul.flights, ul.hotels { list-style-type: none; padding-left: 0; }
+        ul.flights li, ul.hotels li { margin-bottom: 10px; padding: 10px; background: #e8f0fe; border-radius: 5px; }
+        .section-divider { border-top: 2px solid #ddd; margin: 40px 0; }
     </style>
 </head>
 <body>
@@ -19,49 +25,55 @@
     {% endif %}
 
     <form method="post">
-        <label>Destination city (name or IATA code):
-            <input type="text" name="destination" required placeholder="Tokyo or TYO" />
-        </label>
-        <label>Number of days:
-            <input type="number" name="days" min="1" max="30" value="3" />
-        </label>
-        <label>Budget (e.g., ₹80,000):
-            <input type="text" name="budget" required placeholder="₹80,000" />
-        </label>
-        <label>Interests (e.g., beaches, culture):
-            <input type="text" name="interests" required placeholder="Culture, nightlife" />
-        </label>
-        <label>Origin city (name or IATA code):
-            <input type="text" name="origin" required placeholder="Delhi or DEL" />
-        </label>
-        <label>Departure date:
-            <input type="date" name="departure_date" required value="{{request.form.departure_date or ''}}" />
-        </label>
-        <button type="submit" style="margin-top:20px;">Plan My Trip</button>
+        <label for="destination">Destination city (name or IATA code):</label>
+        <input type="text" id="destination" name="destination" required placeholder="Tokyo or TYO" value="{{request.form.destination or ''}}" />
+
+        <label for="days">Number of days:</label>
+        <input type="number" id="days" name="days" min="1" max="30" value="{{request.form.days or 3}}" />
+
+        <label for="budget">Budget (e.g., ₹80,000):</label>
+        <input type="text" id="budget" name="budget" required placeholder="₹80,000" value="{{request.form.budget or ''}}" />
+
+        <label for="interests">Interests (e.g., beaches, culture):</label>
+        <input type="text" id="interests" name="interests" required placeholder="Culture, nightlife" value="{{request.form.interests or ''}}" />
+
+        <label for="origin">Origin city (name or IATA code):</label>
+        <input type="text" id="origin" name="origin" required placeholder="Delhi or DEL" value="{{request.form.origin or ''}}" />
+
+        <label for="departure_date">Departure date:</label>
+        <input type="date" id="departure_date" name="departure_date" required value="{{request.form.departure_date or ''}}" />
+
+        <button type="submit">Plan My Trip</button>
     </form>
 
     {% if itinerary %}
+    <div class="section-divider"></div>
     <h2>Your Trip Itinerary</h2>
     <pre>{{ itinerary }}</pre>
     {% endif %}
 
     {% if flights %}
+    <div class="section-divider"></div>
     <h2>Flight Options</h2>
-    <ul>
+    <ul class="flights">
         {% for flight in flights %}
         <li>
-            Route: {{ flight.itineraries[0].segments | map(attribute='departure.iataCode') | join(' -> ') }} -> {{ flight.itineraries[0].segments[-1].arrival.iataCode }} 
-            | Price: {{ flight.price.grandTotal }} {{ flight.price.currency }}
+            <strong>Route:</strong> {{ flight.itineraries[0].segments | map(attribute='departure.iataCode') | join(' → ') }} → {{ flight.itineraries[0].segments[-1].arrival.iataCode }}<br/>
+            <strong>Price:</strong> {{ flight.price.grandTotal }} {{ flight.price.currency }}
         </li>
         {% endfor %}
     </ul>
     {% endif %}
 
     {% if hotels %}
+    <div class="section-divider"></div>
     <h2>Sample Hotels</h2>
-    <ul>
+    <ul class="hotels">
         {% for hotel in hotels[:5] %}
-        <li>{{ hotel.name }} — {{ hotel.address.lines | join(', ') }}</li>
+        <li>
+            <strong>{{ hotel.name }}</strong><br/>
+            {{ hotel.address.lines | join(', ') }}
+        </li>
         {% endfor %}
     </ul>
     {% endif %}
