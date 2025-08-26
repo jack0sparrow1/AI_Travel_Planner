@@ -1,12 +1,14 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from planner.itinerary import generate_itinerary
 from planner.flight_api import search_flights
 from planner.hotel_api import get_hotels_by_city
 from planner.location_api import get_iata_code
+from google import genai
+from config.settings import GEMINI_API_KEY, DEFAULT_MODEL
 
+# ... your imports ...
 
 app = Flask(__name__)
-
 
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -18,36 +20,115 @@ def home():
     if request.method == "POST":
         destination_input = request.form.get("destination")
         days = int(request.form.get("days", 3))
-        budget = request.form.get("budget")
+        amount = request.form.get("budget")
+        currency = request.form.get("currency", "")
+        # Compose budget with currency symbol if provided
+        budget = (f"{currency} {amount}".strip() if currency else (amount or ""))
         interests = request.form.get("interests")
         origin_input = request.form.get("origin")
         departure_date = request.form.get("departure_date")
 
-        # Resolve IATA codes
-        origin_code = origin_input if len(origin_input) == 3 else get_iata_code(origin_input)
-        destination_code = destination_input if len(destination_input) == 3 else get_iata_code(destination_input)
+        # Resolve IATA codes using your improved lookup
+        origin_iata = get_iata_code(origin_input)
+        destination_iata = get_iata_code(destination_input)
 
-        if not origin_code or not destination_code:
+        if not origin_iata or not destination_iata:
             error = "Invalid origin or destination city. Please check your input."
         else:
-            # Search flights and hotels
-            flights = search_flights(origin_code, destination_code, departure_date, adults=1) or []
-            hotels = get_hotels_by_city(destination_code) or []
+            # Query flights and hotels APIs with resolved codes (limit results for speed)
+            flights = search_flights(origin_iata, destination_iata, departure_date, adults=1, max_results=3) or []
+            hotels = get_hotels_by_city(destination_iata) or []
 
-            # Generate itinerary text
-            itinerary = generate_itinerary(destination_input, days, budget, interests, flights, hotels)
+            # Pass all gathered info to AI prompt orchestration
+            itinerary = generate_itinerary(
+                destination_input, days, budget, interests,
+                origin_iata, destination_iata, flights, hotels
+            )
 
     return render_template(
         "index.html",
         itinerary=itinerary,
         flights=flights,
         hotels=hotels,
-        error=error
+        error=error,
+        form_values=request.form
     )
+
+@app.route("/api/famous-cities", methods=["GET"])
+def famous_cities():
+    country = request.args.get("country", "").strip()
+    if not country:
+        return jsonify({"error": "Missing 'country' parameter"}), 400
+
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        prompt = f"""
+You are a travel data assistant. List the most famous cities in the country: {country}.
+Return ONLY a JSON array of city names, no explanations. Limit to 8-12 items, diverse across regions.
+Examples: ["Paris", "Lyon", "Nice"]
+"""
+        response = client.models.generate_content(
+            model=DEFAULT_MODEL,
+            contents=prompt
+        )
+        text = (response.text or "").strip()
+
+        # Normalize common code-fence formats from LLM output
+        if text.startswith("```"):
+            # Strip the first fence line and any trailing fence
+            lines = text.splitlines()
+            # drop first line like ```json
+            if lines:
+                lines = lines[1:]
+            # remove trailing ``` if present
+            if lines and lines[-1].strip().startswith("```"):
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+
+        # Best-effort: ensure we return a JSON array
+        import json
+        cities = []
+        try:
+            # Try to parse direct JSON or extract array by brackets
+            if not (text.startswith("[") and text.endswith("]")):
+                # Find first '[' and last ']'
+                start = text.find("[")
+                end = text.rfind("]")
+                if start != -1 and end != -1 and end > start:
+                    text_candidate = text[start:end+1]
+                else:
+                    text_candidate = text
+            else:
+                text_candidate = text
+
+            cities = json.loads(text_candidate)
+            if not isinstance(cities, list):
+                cities = []
+        except Exception:
+            # Fallback: try to extract lines
+            for line in text.splitlines():
+                line = line.strip("- •* \t\n\r ")
+                if line and not line.startswith("[") and not line.startswith("`") and line.lower() != "json":
+                    cities.append(line)
+
+        # Clean and dedupe
+        cleaned = []
+        seen = set()
+        for c in cities:
+            name = str(c).strip()
+            if name and name not in seen:
+                seen.add(name)
+                cleaned.append(name)
+
+        if not cleaned:
+            return jsonify({"error": "No cities found"}), 502
+
+        return jsonify({"country": country, "cities": cleaned[:12]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=8080)
-
 
 
 

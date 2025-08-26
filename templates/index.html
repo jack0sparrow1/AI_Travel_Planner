@@ -3,36 +3,93 @@
 <head>
     <title>AI Travel Planner</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 30px; max-width: 900px; line-height: 1.6; color: #333; }
-        label { display: block; margin-top: 15px; font-weight: bold; }
-        input, select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        button { margin-top: 25px; padding: 10px 20px; background-color: #0078D7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
-        button:hover { background-color: #005fa3; }
-        .error { color: #b00020; font-weight: bold; margin-bottom: 15px; }
-        pre { background: #f4f4f4; padding: 15px; white-space: pre-wrap; border-radius: 5px; }
-        h1, h2 { color: #0078D7; margin-top: 40px; }
-        ul { list-style-type: disc; padding-left: 20px; }
+        :root {
+            --bg: #0b1020;
+            --card: #131a2b;
+            --muted: #9fb0d0;
+            --text: #e8ecf5;
+            --brand: #6aa2ff;
+            --brand-2: #8b6bff;
+            --accent: #23d5ab;
+        }
+        body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: radial-gradient(1200px 600px at 10% -20%, #1a2450, transparent), radial-gradient(1200px 600px at 110% 10%, #1a2740, transparent), var(--bg); color: var(--text); }
+        .container { max-width: 1100px; margin: 0 auto; padding: 32px 20px 100px; }
+        .header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+        .title { font-size: 28px; font-weight: 800; letter-spacing: 0.2px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .card { background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.35); border-radius: 14px; padding: 20px; backdrop-filter: blur(6px); }
+        label { display: block; margin-top: 14px; font-weight: 600; color: var(--muted); font-size: 13px; }
+        input, select { width: 100%; padding: 12px 12px; margin-top: 8px; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; background: #0f1526; color: var(--text); outline: none; }
+        input::placeholder { color: #6e7a95; }
+        button { margin-top: 22px; padding: 12px 18px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: 600; box-shadow: 0 10px 20px rgba(106,162,255,0.25); }
+        button:hover { filter: brightness(1.05); }
+        .error { color: #ff6b8b; font-weight: 600; margin-bottom: 15px; }
+        h1, h2 { color: var(--text); margin: 0; }
+        h2 { font-size: 20px; margin-bottom: 12px; }
+        .section-divider { border-top: 1px solid rgba(255,255,255,0.1); margin: 28px 0; }
+        .chips button { background:#0f1628; border: 1px solid rgba(255,255,255,0.12); color: var(--text); }
         ul.flights, ul.hotels { list-style-type: none; padding-left: 0; }
-        ul.flights li, ul.hotels li { margin-bottom: 10px; padding: 10px; background: #e8f0fe; border-radius: 5px; }
-        .section-divider { border-top: 2px solid #ddd; margin: 40px 0; }
+        ul.flights li, ul.hotels li { margin-bottom: 10px; padding: 12px; background: #0f1628; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 860px) { .grid { grid-template-columns: 1.2fr 0.8fr; } }
+        .loader-overlay { position: fixed; inset: 0; background: rgba(4,7,15,0.65); display: none; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(4px); }
+        .loader { width: 68px; height: 68px; border-radius: 50%; border: 6px solid rgba(255,255,255,0.15); border-top-color: var(--brand); animation: spin 1s linear infinite; box-shadow: 0 0 30px rgba(106,162,255,0.35); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .itinerary section { background:#0f1628; border:1px solid rgba(255,255,255,0.08); border-radius: 12px; padding:16px; margin-bottom:12px; }
+        .itinerary h2, .itinerary h3 { margin: 0 0 8px; }
+        .itinerary dl { display:grid; grid-template-columns: auto 1fr; gap:8px 14px; margin:0; }
     </style>
 </head>
 <body>
-    <h1>🌍 AI Travel Planner</h1>
+    <div class="container">
+      <div class="header">
+        <h1 class="title">🌍 AI Travel Planner</h1>
+      </div>
 
     {% if error %}
     <p class="error">{{ error }}</p>
     {% endif %}
 
-    <form method="post">
+    <div class="grid">
+      <div class="card" id="form_card" {% if itinerary %}style="display:none"{% endif %}>
+        <form method="post" id="planner_form">
+        <label for="country">Select country:</label>
+        <select id="country" name="country">
+            <option value="">-- Choose a country (optional) --</option>
+            <option value="India">India</option>
+            <option value="Japan">Japan</option>
+            <option value="United States">United States</option>
+            <option value="United Kingdom">United Kingdom</option>
+            <option value="France">France</option>
+            <option value="Italy">Italy</option>
+            <option value="Spain">Spain</option>
+            <option value="Australia">Australia</option>
+            <option value="Canada">Canada</option>
+            <option value="Singapore">Singapore</option>
+        </select>
+
+        <div id="cities_section" style="display:none; margin-top:10px;">
+            <label>Famous cities:</label>
+            <div id="cities_list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+        </div>
+
         <label for="destination">Destination city (name or IATA code):</label>
         <input type="text" id="destination" name="destination" required placeholder="Tokyo or TYO" value="{{request.form.destination or ''}}" />
 
         <label for="days">Number of days:</label>
         <input type="number" id="days" name="days" min="1" max="30" value="{{request.form.days or 3}}" />
 
-        <label for="budget">Budget (e.g., ₹80,000):</label>
-        <input type="text" id="budget" name="budget" required placeholder="₹80,000" value="{{request.form.budget or ''}}" />
+        <label for="budget">Budget:</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <select id="currency" name="currency" style="max-width:140px;">
+                <option value="" {% if not request.form.currency %}selected{% endif %}>Choose currency</option>
+                <option value="₹" {% if request.form.currency == '₹' %}selected{% endif %}>₹ INR</option>
+                <option value="$" {% if request.form.currency == '$' %}selected{% endif %}>$ USD</option>
+                <option value="€" {% if request.form.currency == '€' %}selected{% endif %}>€ EUR</option>
+                <option value="£" {% if request.form.currency == '£' %}selected{% endif %}>£ GBP</option>
+                <option value="¥" {% if request.form.currency == '¥' %}selected{% endif %}>¥ JPY/CNY</option>
+            </select>
+            <input type="text" id="budget" name="budget" required placeholder="Amount e.g., 80,000" value="{{request.form.budget or ''}}" />
+        </div>
 
         <label for="interests">Interests (e.g., beaches, culture):</label>
         <input type="text" id="interests" name="interests" required placeholder="Culture, nightlife" value="{{request.form.interests or ''}}" />
@@ -44,16 +101,29 @@
         <input type="date" id="departure_date" name="departure_date" required value="{{request.form.departure_date or ''}}" />
 
         <button type="submit">Plan My Trip</button>
-    </form>
+        </form>
+      </div>
+      <div class="card" id="tips_card" {% if itinerary %}style="display:none"{% endif %}>
+        <h2>Tips</h2>
+        <ul>
+          <li>Use the country picker to get quick city ideas.</li>
+          <li>Pick a currency so budget context is clear.</li>
+          <li>Adjust days and interests to shape the itinerary.</li>
+        </ul>
+      </div>
+    </div>
 
     {% if itinerary %}
     <div class="section-divider"></div>
-    <h2>Your Trip Itinerary</h2>
-    <pre>{{ itinerary }}</pre>
+    <div class="card itinerary">
+      <h2>Your Trip Itinerary</h2>
+      <div>{{ itinerary|safe }}</div>
+    </div>
     {% endif %}
 
     {% if flights %}
     <div class="section-divider"></div>
+    <div class="card">
     <h2>Flight Options</h2>
     <ul class="flights">
         {% for flight in flights %}
@@ -63,10 +133,12 @@
         </li>
         {% endfor %}
     </ul>
+    </div>
     {% endif %}
 
     {% if hotels %}
     <div class="section-divider"></div>
+    <div class="card">
     <h2>Sample Hotels</h2>
     <ul class="hotels">
         {% for hotel in hotels[:5] %}
@@ -76,6 +148,80 @@
         </li>
         {% endfor %}
     </ul>
+    </div>
     {% endif %}
-</body>
-</html>
+    </div>
+    <div class="loader-overlay" id="loader_overlay">
+        <div class="loader"></div>
+    </div>
+    <script>
+    (function() {
+        const countrySelect = document.getElementById('country');
+        const citiesSection = document.getElementById('cities_section');
+        const citiesList = document.getElementById('cities_list');
+        const destinationInput = document.getElementById('destination');
+
+        async function fetchFamousCities(country) {
+            const url = `/api/famous-cities?country=${encodeURIComponent(country)}`;
+            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error('Failed to fetch cities');
+            return res.json();
+        }
+
+        function renderCities(cities) {
+            citiesList.innerHTML = '';
+            if (!cities || !cities.length) {
+                citiesSection.style.display = 'none';
+                return;
+            }
+            citiesSection.style.display = 'block';
+            cities.forEach(function(city) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = city;
+                btn.style.padding = '6px 10px';
+                btn.style.border = '1px solid #ccc';
+                btn.style.background = '#f9f9f9';
+                btn.style.borderRadius = '16px';
+                btn.style.cursor = 'pointer';
+                btn.style.color = '#333';
+                btn.addEventListener('click', function() {
+                    destinationInput.value = city;
+                    destinationInput.focus();
+                });
+                citiesList.appendChild(btn);
+            });
+        }
+
+        countrySelect.addEventListener('change', async function() {
+            const country = countrySelect.value.trim();
+            if (!country) {
+                citiesSection.style.display = 'none';
+                citiesList.innerHTML = '';
+                return;
+            }
+            citiesSection.style.display = 'block';
+            citiesList.innerHTML = 'Loading...';
+            try {
+                const data = await fetchFamousCities(country);
+                renderCities((data && data.cities) || []);
+            } catch (e) {
+                citiesList.innerHTML = 'Could not load cities. Please try again.';
+            }
+        });
+
+        // Loading overlay on submit
+        const form = document.getElementById('planner_form');
+        const overlay = document.getElementById('loader_overlay');
+        if (form && overlay) {
+            form.addEventListener('submit', function() {
+                overlay.style.display = 'flex';
+            });
+            window.addEventListener('pageshow', function() {
+                overlay.style.display = 'none';
+            });
+        }
+    })();
+    </script>
+  </body>
+  </html>
