@@ -14,7 +14,6 @@
 - [Project Structure](#project-structure)  
 - [Future Improvements](#future-improvements)  
 - [Contributing](#contributing)  
-- [License](#license)
 
 ---
 
@@ -96,7 +95,7 @@ Follow the prompts to input trip details.
 
 Run the web app:
 
-streamlit run app.py
+python app.py
 
 
 Open the provided URL in a browser and interact with the UI.
@@ -108,7 +107,7 @@ Open the provided URL in a browser and interact with the UI.
 /config
 settings.py # Loads API keys from environment variables
 
-/iata_codes.json # Local city to IATA code mapping
+/iata_codes_full.json # Local city to IATA code mapping
 
 /planner/
 itinerary.py # AI itinerary generation logic with Gemini API
