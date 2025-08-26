@@ -47,6 +47,7 @@ User Input:
 
 TASK: Produce a beautifully structured HTML itinerary. Use semantic headings and sections.
 REQUIREMENTS:
+- Answer with the currency given in the budget.
 - Start with <section class="itinerary-header"> including an <h2> title and a short summary.
 - Add a <section class="trip-facts"> with a small definition list (<dl>) for key facts (days, budget, interests, best flight pick, suggested hotel area).
 - Add <section class="daily-plan"> with one <article class="day"> per day: include <h3> Day N and an unordered list of activities with brief descriptions and timing hints.

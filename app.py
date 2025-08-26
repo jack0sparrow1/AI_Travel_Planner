@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, jsonify
+import os
+import json
 from planner.itinerary import generate_itinerary
 from planner.flight_api import search_flights
 from planner.hotel_api import get_hotels_by_city
@@ -9,6 +11,35 @@ from config.settings import GEMINI_API_KEY, DEFAULT_MODEL
 # ... your imports ...
 
 app = Flask(__name__)
+
+# Load IATA cities per country at startup for canonical matching
+COUNTRY_TO_CITY_SET = {}
+COUNTRY_CITY_FREQ = {}
+
+def load_iata_index():
+    global COUNTRY_TO_CITY_SET, COUNTRY_CITY_FREQ
+    try:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        iata_path = os.path.join(base_dir, 'planner', 'iata_codes_full.json')
+        with open(iata_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        country_to_cities = {}
+        freq = {}
+        for rec in data:
+            country = (rec.get('country') or '').strip()
+            city = (rec.get('city') or '').strip()
+            if not country or not city:
+                continue
+            country_to_cities.setdefault(country, set()).add(city)
+            key = (country, city)
+            freq[key] = freq.get(key, 0) + 1
+        COUNTRY_TO_CITY_SET = country_to_cities
+        COUNTRY_CITY_FREQ = freq
+    except Exception:
+        COUNTRY_TO_CITY_SET = {}
+        COUNTRY_CITY_FREQ = {}
+
+load_iata_index()
 
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -120,10 +151,22 @@ Examples: ["Paris", "Lyon", "Nice"]
                 seen.add(name)
                 cleaned.append(name)
 
-        if not cleaned:
+        # Filter by IATA dataset for exact city names in the selected country
+        valid = COUNTRY_TO_CITY_SET.get(country, set())
+        filtered = [name for name in cleaned if name in valid]
+
+        # Fallback: if nothing matched, pick popular cities from dataset
+        if not filtered and valid:
+            items = []
+            for city in valid:
+                items.append((city, COUNTRY_CITY_FREQ.get((country, city), 0)))
+            items.sort(key=lambda x: (-x[1], x[0]))
+            filtered = [city for city, _ in items[:12]]
+
+        if not filtered:
             return jsonify({"error": "No cities found"}), 502
 
-        return jsonify({"country": country, "cities": cleaned[:12]})
+        return jsonify({"country": country, "cities": filtered[:12]})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
