@@ -129,7 +129,7 @@
         {% for flight in flights %}
         <li>
             <strong>Route:</strong> {{ flight.itineraries[0].segments | map(attribute='departure.iataCode') | join(' → ') }} → {{ flight.itineraries[0].segments[-1].arrival.iataCode }}<br/>
-            <strong>Price:</strong> {{ flight.price.grandTotal }} {{ flight.price.currency }}
+            <strong>Price:</strong> {{ flight.price.grandTotal }} {{ flight.price.currency }}{% if flight.converted_price and flight.converted_currency %}  ·  ≈ {{ flight.converted_price }} {{ flight.converted_currency }}{% endif %}
         </li>
         {% endfor %}
     </ul>

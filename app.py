@@ -12,6 +12,44 @@ from config.settings import GEMINI_API_KEY, DEFAULT_MODEL
 
 app = Flask(__name__)
 
+# Simple in-memory FX rate cache to reduce Gemini calls
+_FX_CACHE = {}
+
+_SYMBOL_TO_CODE = {
+    "₹": "INR",
+    "$": "USD",
+    "€": "EUR",
+    "£": "GBP",
+    "¥": "JPY",  # default to JPY for Yen symbol
+}
+
+def _get_fx_rate(from_code: str, to_code: str) -> float:
+    if not from_code or not to_code or from_code == to_code:
+        return 1.0
+    key = (from_code.upper(), to_code.upper())
+    if key in _FX_CACHE:
+        return _FX_CACHE[key]
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    prompt = f"""
+Return ONLY the current foreign exchange rate as a decimal number from {from_code} to {to_code}.
+No words, no symbols, just the numeric rate, e.g. 82.45
+"""
+    response = client.models.generate_content(model=DEFAULT_MODEL, contents=prompt)
+    text = (response.text or "").strip()
+    # Extract first numeric token
+    import re
+    match = re.search(r"[-+]?[0-9]*\.?[0-9]+", text)
+    rate = 1.0
+    if match:
+        try:
+            rate = float(match.group(0))
+        except Exception:
+            rate = 1.0
+    if rate <= 0:
+        rate = 1.0
+    _FX_CACHE[key] = rate
+    return rate
+
 # Load IATA cities per country at startup for canonical matching
 COUNTRY_TO_CITY_SET = {}
 COUNTRY_CITY_FREQ = {}
@@ -75,6 +113,24 @@ def home():
                 destination_input, days, budget, interests,
                 origin_iata, destination_iata, flights, hotels
             )
+
+            # Convert flight prices to selected budget currency if provided
+            if currency:
+                target_code = _SYMBOL_TO_CODE.get(currency, None)
+                if target_code:
+                    for f in flights:
+                        try:
+                            orig_currency = (f.get('price', {}).get('currency') or '').upper()
+                            amount_str = f.get('price', {}).get('grandTotal')
+                            amount = float(str(amount_str).replace(',', '')) if amount_str is not None else None
+                            if amount is not None and orig_currency:
+                                rate = _get_fx_rate(orig_currency, target_code)
+                                converted = amount * rate
+                                f['converted_price'] = f"{converted:.2f}"
+                                f['converted_currency'] = currency
+                        except Exception:
+                            # If conversion fails, skip gracefully
+                            continue
 
     return render_template(
         "index.html",
