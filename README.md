@@ -146,11 +146,6 @@ README.md # This file
 
 Contributions, bug reports, and feature requests are welcome! Please open issues or submit pull requests.
 
----
-
-## License
-
-This project is licensed under the MIT License.
 
 ---
 
