@@ -145,7 +145,10 @@ README.md # This file
 
 Contributions, bug reports, and feature requests are welcome! Please open issues or submit pull requests.
 
+---
+## Render Deployed link to the AI travel Planner
 
+[AI_Travel_Planner](https://ai-travel-planner-7mq4.onrender.com/)
 ---
 
 Happy travels! ✈️🏨🗺️
